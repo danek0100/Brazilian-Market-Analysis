@@ -1,4 +1,5 @@
 from investiny import historical_data
+import yfinance as yf
 from os import walk
 from time import sleep
 from src.stock import Stock
@@ -53,3 +54,19 @@ def get_Stocks(ids_path="../resource/brazil_ids.csv"):
                 stocks.append(Stock(row['id'], row['symbol'], close, volume))
 
     return stocks
+
+
+def get_market_index(key, from_date="2017-01-01", to_date="2018-01-01"):
+    data = yf.download(key, from_date, to_date)
+    prices_array = []
+    volumes_array = []
+    for price in data['Adj Close']:
+        prices_array.append(price)
+    for volume in data['Volume']:
+        volumes_array.append(volume)
+
+    stock = Stock(0, key, prices_array, volumes_array)
+    stock.profitability = data['Adj Close'].pct_change()
+    stock.E = stock.profitability.mean()
+    stock.sigma = stock.profitability.var()
+    return stock
