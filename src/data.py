@@ -56,7 +56,7 @@ def get_Stocks(ids_path="../resource/brazil_ids.csv"):
     return stocks
 
 
-def get_market_index(key, from_date="2017-01-01", to_date="2018-01-01"):
+def get_market_index(key, levelValueAtRisk, from_date="2017-01-01", to_date="2018-01-01"):
     data = yf.download(key, from_date, to_date)
     prices_array = []
     volumes_array = []
@@ -67,6 +67,9 @@ def get_market_index(key, from_date="2017-01-01", to_date="2018-01-01"):
 
     stock = Stock(0, key, prices_array, volumes_array)
     stock.profitability = data['Adj Close'].pct_change()
+    stock.profitability_sorted = stock.profitability.copy().sort_values()
+    stock.ValueAtRisk[levelValueAtRisk] = stock.profitability_sorted.array[int(len(stock.profitability_sorted) *
+                                                                               (1.0 - float(levelValueAtRisk))):].min()
     stock.E = stock.profitability.mean()
     stock.sigma = stock.profitability.var()
     return stock

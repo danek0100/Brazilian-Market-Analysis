@@ -10,8 +10,10 @@ class Stock:
             self.close_price = close_price_
             self.volume = volume_
             self.profitability = []
+            self.profitability_sorted = []
             self.sigma = None
             self.E = None
+            self.ValueAtRisk = {}
 
         except TypeError:
             raise TypeError
