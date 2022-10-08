@@ -2,7 +2,7 @@ from investiny import historical_data
 import yfinance as yf
 from os import walk
 from time import sleep
-from src.stock import Stock
+from stock import Stock
 import csv
 
 
