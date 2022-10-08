@@ -7,3 +7,4 @@ investiny
 yfinance
 csv
 time
+seaborn

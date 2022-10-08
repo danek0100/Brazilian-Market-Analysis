@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np 
 import seaborn as sns
 
-from data import *
-from stock import Stock
+from src.data import *
+from src.stock import Stock
 
 # constants
 ids_path = "../resource/brazil_ids.csv"
@@ -39,8 +39,12 @@ sigmas = []
 for stock in stocks:
     stock.profitability = pd.DataFrame(stock.close_price).pct_change()
     stock.E = stock.profitability.mean()[0]
-    stock.sigma = stock.profitability.var()[0]
-    stock.profitability_sorted = pd.DataFrame(stock.close_price).pct_change().sort_values(by=[0])
+    stock.sigma = stock.profitability.std()[0]
+    stock.profitability_sorted = pd.DataFrame(stock.close_price).pct_change()
+    for stock_proft in stock.profitability_sorted:
+        stock_proft *= -1
+    stock.profitability_sorted = stock.profitability_sorted.sort_values(by=[0])
+
     stock.ValueAtRisk[levelValueAtRisk] = stock.profitability_sorted[0][int(len(stock.profitability_sorted) *
                                                                             (1.0 - float(levelValueAtRisk))):].min()
     Es.append(stock.E)
@@ -69,7 +73,7 @@ stocks[-1].ValueAtRisk[levelValueAtRisk] = globalValueAtRisk
 Es.append(stocks[-1].E)
 sigmas.append(stocks[-1].sigma)
 
-maxValueAtRiskStock = max(stocks, key=lambda x: x.ValueAtRisk[levelValueAtRisk])
+maxValueAtRiskStock = min(stocks, key=lambda x: x.ValueAtRisk[levelValueAtRisk])
 print(maxValueAtRiskStock.key)
 print(maxValueAtRiskStock.ValueAtRisk[levelValueAtRisk])
 
@@ -86,78 +90,85 @@ plt.plot(sigmas[-2], Es[-2], 'r*')
 plt.plot(sigmas[-1], Es[-1], 'g*')
 plt.show()
 
-
-#prepearing fot graphs
-df_for_graph = pd.DataFrame(
-    {'σ': sigmas[:-2],
-     'E': Es[:-2]
-    })
-
-
-#for 2 point
-sns.set_style("darkgrid")
-fig, ax = plt.subplots(1,2)
-plt.subplots_adjust(wspace= 0.5)
-sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0]).set_title("Profitability/Risk Map")
-ax[0].legend(['Assets'])
-df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
-sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
-ax[1].legend(['Assets'])
-fig.show()
+needed_stocks = ['VALE3', 'ITUB3', 'GOLL4', 'BBDC3', 'VIVT3']
+for name_stock in needed_stocks:
+    find_stock = next(stock for stock in stocks if stock.key == name_stock)
+    print('\n' + str(find_stock.key))
+    print([round(price, 2) for price in find_stock.profitability[0]])
+    print(find_stock.volume)
 
 
-#for 3 point
-sns.set_style("darkgrid")
-fig_1, ax = plt.subplots(1,2)
-plt.subplots_adjust(wspace= 0.5)
-
-sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0], legend = "full").set_title("Profitability/Risk Map")
-ax[0].plot(sigmas[-1], Es[-1], color='green', marker='o')
-ax[0].legend(['Assets', 'Balanced portfolio'])
-
-df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
-sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
-ax[1].plot(sigmas[-1], Es[-1], color='green', marker='o', label = "Balanced portfolio")
-ax[1].legend(['Assets', 'Balanced portfolio'])
-fig_1.show()
-
-#for 4 point
-sns.set_style("darkgrid")
-fig_2, ax = plt.subplots(1,2)
-plt.subplots_adjust(wspace= 0.5)
-
-sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0]).set_title("Profitability/Risk Map")
-ax[0].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
-ax[0].plot(sigmas[-1], Es[-1], color='green', marker='o')
-ax[0].legend(['Assets', 'Market index - BOVESPA','Balanced portfolio'])
-df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
-sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
-#plt.plot(maxValueAtRiskStock.sigma, maxValueAtRiskStock.E, color='red', marker='o')
-
-ax[1].plot(sigmas[-1], Es[-1], color='green', marker='o')
-ax[1].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
-ax[1].legend(['Assets', 'Market index - BOVESPA','Balanced portfolio'])
-fig_2.show()
-
-#for 5 point
-sns.set_style("darkgrid")
-fig_3, ax = plt.subplots(1,2)
-plt.subplots_adjust(wspace= 0.5)
-
-sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0]).set_title("Profitability/Risk Map")
-ax[0].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
-ax[0].plot(sigmas[-1], Es[-1], color='green', marker='o')
-ax[0].plot(maxValueAtRiskStock.sigma, maxValueAtRiskStock.E, color='red', marker='o')
-ax[0].legend(['Assets', 'Market index - BOVESPA','Balanced portfolio' , 'VAR'])
-
-df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
-sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
-#plt.plot(maxValueAtRiskStock.sigma, maxValueAtRiskStock.E, color='red', marker='o')
-
-ax[1].plot(sigmas[-1], Es[-1], color='green', marker='o')
-ax[1].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
-ax[1].plot(maxValueAtRiskStock.sigma, maxValueAtRiskStock.E, color='red', marker='o')
-ax[1].legend(['Assets', 'Market index - BOVESPA','Balanced portfolio', 'VAR'])
-fig_3.show()
-input() #to stop close graph:)
-
+# #prepearing fot graphs
+# df_for_graph = pd.DataFrame(
+#     {'σ': sigmas[:-2],
+#      'E': Es[:-2]
+#     })
+#
+#
+# #for 2 point
+# sns.set_style("darkgrid")
+# fig, ax = plt.subplots(1,2)
+# plt.subplots_adjust(wspace= 0.5)
+# sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0]).set_title("Profitability/Risk Map")
+# ax[0].legend(['Assets'])
+# df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
+# sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
+# ax[1].legend(['Assets'])
+# fig.show()
+#
+#
+# #for 3 point
+# sns.set_style("darkgrid")
+# fig_1, ax = plt.subplots(1,2)
+# plt.subplots_adjust(wspace= 0.5)
+#
+# sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0], legend = "full").set_title("Profitability/Risk Map")
+# ax[0].plot(sigmas[-1], Es[-1], color='green', marker='o')
+# ax[0].legend(['Assets', 'Balanced portfolio'])
+#
+# df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
+# sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
+# ax[1].plot(sigmas[-1], Es[-1], color='green', marker='o', label = "Balanced portfolio")
+# ax[1].legend(['Assets', 'Balanced portfolio'])
+# fig_1.show()
+#
+# #for 4 point
+# sns.set_style("darkgrid")
+# fig_2, ax = plt.subplots(1,2)
+# plt.subplots_adjust(wspace= 0.5)
+#
+# sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0]).set_title("Profitability/Risk Map")
+# ax[0].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
+# ax[0].plot(sigmas[-1], Es[-1], color='green', marker='o')
+# ax[0].legend(['Assets', 'Market index - BOVESPA','Balanced portfolio'])
+# df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
+# sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
+# #plt.plot(maxValueAtRiskStock.sigma, maxValueAtRiskStock.E, color='red', marker='o')
+#
+# ax[1].plot(sigmas[-1], Es[-1], color='green', marker='o')
+# ax[1].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
+# ax[1].legend(['Assets', 'Market index - BOVESPA','Balanced portfolio'])
+# fig_2.show()
+#
+# #for 5 point
+# sns.set_style("darkgrid")
+# fig_3, ax = plt.subplots(1,2)
+# plt.subplots_adjust(wspace= 0.5)
+#
+# sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0]).set_title("Profitability/Risk Map")
+# ax[0].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
+# ax[0].plot(sigmas[-1], Es[-1], color='green', marker='o')
+# ax[0].plot(maxValueAtRiskStock.sigma, maxValueAtRiskStock.E, color='red', marker='o')
+# ax[0].legend(['Assets', 'Market index - BOVESPA','Balanced portfolio' , 'VAR'])
+#
+# df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
+# sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
+# #plt.plot(maxValueAtRiskStock.sigma, maxValueAtRiskStock.E, color='red', marker='o')
+#
+# ax[1].plot(sigmas[-1], Es[-1], color='green', marker='o')
+# ax[1].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
+# ax[1].plot(maxValueAtRiskStock.sigma, maxValueAtRiskStock.E, color='red', marker='o')
+# ax[1].legend(['Assets', 'Market index - BOVESPA','Balanced portfolio', 'VAR'])
+# fig_3.show()
+# input() #to stop close graph:)
+#

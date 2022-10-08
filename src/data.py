@@ -2,7 +2,7 @@ from investiny import historical_data
 import yfinance as yf
 from os import walk
 from time import sleep
-from stock import Stock
+from src.stock import Stock
 import csv
 
 
@@ -67,9 +67,11 @@ def get_market_index(key, levelValueAtRisk, from_date="2017-01-01", to_date="201
 
     stock = Stock(0, key, prices_array, volumes_array)
     stock.profitability = data['Adj Close'].pct_change()
-    stock.profitability_sorted = stock.profitability.copy().sort_values()
+    stock.profitability_sorted = stock.profitability.copy()
+    for stock_proft in stock.profitability_sorted:
+        stock_proft *= -1
     stock.ValueAtRisk[levelValueAtRisk] = stock.profitability_sorted.array[int(len(stock.profitability_sorted) *
                                                                                (1.0 - float(levelValueAtRisk))):].min()
     stock.E = stock.profitability.mean()
-    stock.sigma = stock.profitability.var()
+    stock.sigma = stock.profitability.std()
     return stock
