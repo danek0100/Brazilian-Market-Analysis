@@ -4,9 +4,11 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np 
 import seaborn as sns
+from scipy import stats
 
 from src.data import *
 from src.stock import Stock
+
 
 # constants
 ids_path = "../resource/brazil_ids.csv"
@@ -91,11 +93,32 @@ plt.plot(sigmas[-1], Es[-1], 'g*')
 plt.show()
 
 needed_stocks = ['VALE3', 'ITUB3', 'GOLL4', 'BBDC3', 'VIVT3']
+selected_stocks = []
 for name_stock in needed_stocks:
     find_stock = next(stock for stock in stocks if stock.key == name_stock)
     print('\n' + str(find_stock.key))
     print([round(price, 2) for price in find_stock.profitability[0]])
     print(find_stock.volume)
+    selected_stocks.append(find_stock)
+
+
+
+
+start = "\033[1m"
+end = "\033[0;0m"
+alpha = 0.05
+to_rus = {'log_return': 'доходностей', 'Volume': 'объема продаж'}
+print('Критерий инверсии:\n')
+for label in stocks_names:
+    stock = sse_stocks[label]
+    for column in ['log_return','Volume']:
+        result, p_value = inversion_test(stock, alpha, column)
+        if result:
+            print(f'Г-за случайности \"{label}\" для {to_rus[column]} {start}отвергается{end} - p_value {round(p_value,3)}')
+        else:
+            print(f'Г-за случайности \"{label}\" для {to_rus[column]} {start}принимается{end} - p_value {round(p_value,3)}')
+
+
 
 
 # #prepearing fot graphs

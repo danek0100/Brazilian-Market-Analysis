@@ -8,3 +8,4 @@ yfinance
 csv
 time
 seaborn
+scipy

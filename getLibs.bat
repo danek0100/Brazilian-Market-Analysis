@@ -8,3 +8,4 @@ pip install yfinance
 pip install csv
 pip install time
 pip install seaborn
+pip install scipy
