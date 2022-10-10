@@ -9,3 +9,4 @@ pip install csv
 pip install time
 pip install seaborn
 pip install scipy
+pip install networkx

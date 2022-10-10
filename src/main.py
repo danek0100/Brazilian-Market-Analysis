@@ -1,14 +1,8 @@
 import os
-import pandas as pd
-import math
-import matplotlib.pyplot as plt
-import numpy as np 
-import seaborn as sns
-from scipy import stats
 
 from src.data import *
 from src.stock import Stock
-
+from src.functions import *
 
 # constants
 ids_path = "../resource/brazil_ids.csv"
@@ -31,24 +25,13 @@ if not os.path.isdir('../resource/data/'):
     get_data(ids_path)
 
 # create stocks from files with data
-stocks = get_Stocks()
-
+stocks = get_Stocks(levelValueAtRisk)
 
 # Add mean and var to stocks
 Es = []
 sigmas = []
 
 for stock in stocks:
-    stock.profitability = pd.DataFrame(stock.close_price).pct_change()
-    stock.E = stock.profitability.mean()[0]
-    stock.sigma = stock.profitability.std()[0]
-    stock.profitability_sorted = pd.DataFrame(stock.close_price).pct_change()
-    for stock_proft in stock.profitability_sorted:
-        stock_proft *= -1
-    stock.profitability_sorted = stock.profitability_sorted.sort_values(by=[0])
-
-    stock.ValueAtRisk[levelValueAtRisk] = stock.profitability_sorted[0][int(len(stock.profitability_sorted) *
-                                                                            (1.0 - float(levelValueAtRisk))):].min()
     Es.append(stock.E)
     sigmas.append(stock.sigma)
 
@@ -58,7 +41,7 @@ Es.append(stocks[-1].E)
 sigmas.append(stocks[-1].sigma)
 
 # Add equal backpack
-
+########################################################################################################################
 sum_Es = 0.0
 sum_sigmas = 0.0
 for i in range(len(Es)):
@@ -68,12 +51,14 @@ for i in range(len(Es)):
 globalValueAtRisk = (min(sorted(stocks, key=lambda x: x.ValueAtRisk[levelValueAtRisk])
                          [int(len(stocks) * (1.0 - float(levelValueAtRisk))):],
                          key=lambda x: x.ValueAtRisk[levelValueAtRisk])).ValueAtRisk[levelValueAtRisk]
+
 stocks.append(Stock(0, "EQAL", [], []))
 stocks[-1].sigma = sum_sigmas / len(sigmas)
 stocks[-1].E = sum_Es / len(Es)
 stocks[-1].ValueAtRisk[levelValueAtRisk] = globalValueAtRisk
 Es.append(stocks[-1].E)
 sigmas.append(stocks[-1].sigma)
+########################################################################################################################
 
 maxValueAtRiskStock = min(stocks, key=lambda x: x.ValueAtRisk[levelValueAtRisk])
 print(maxValueAtRiskStock.key)
@@ -90,35 +75,113 @@ plt.plot(sigmas[:-2], Es[:-2], 'b*')
 plt.plot(maxValueAtRiskStock.sigma, maxValueAtRiskStock.E, 'y*')
 plt.plot(sigmas[-2], Es[-2], 'r*')
 plt.plot(sigmas[-1], Es[-1], 'g*')
-plt.show()
+#plt.show()
 
-needed_stocks = ['VALE3', 'ITUB3', 'GOLL4', 'BBDC3', 'VIVT3']
+needed_stocks = ['VALE3', 'ITUB3', 'GOLL4', 'VIVT3', 'CMIG3']
+
+# VALE3 - горная добыча
+# ITUB3 - крупнейший негосударственный банк
+# GOLL4 - бразильские авиалинии
+# BBDC3 - третий по величине банк бразилии
+# VIVT3 - оператор сотовой связи
+# CMIG3 - электричество
 selected_stocks = []
 for name_stock in needed_stocks:
     find_stock = next(stock for stock in stocks if stock.key == name_stock)
-    print('\n' + str(find_stock.key))
-    print([round(price, 2) for price in find_stock.profitability[0]])
-    print(find_stock.volume)
     selected_stocks.append(find_stock)
 
-
-
-
-start = "\033[1m"
-end = "\033[0;0m"
 alpha = 0.05
-to_rus = {'log_return': 'доходностей', 'Volume': 'объема продаж'}
-print('Критерий инверсии:\n')
-for label in stocks_names:
-    stock = sse_stocks[label]
-    for column in ['log_return','Volume']:
-        result, p_value = inversion_test(stock, alpha, column)
+print('Критерий инверсии:')
+for stock in selected_stocks:
+    print('\n' + str(stock.name))
+    print([round(price, 2) for price in stock.profitability[0]])
+    print(stock.volume)
+    for target in ['profit', 'volume']:
+        result, p_value = inversion_test(stock, alpha, target)
         if result:
-            print(f'Г-за случайности \"{label}\" для {to_rus[column]} {start}отвергается{end} - p_value {round(p_value,3)}')
+            print(f'Г-за случайности отвергается ' + target + ' ' + str(round(p_value, 3)))
         else:
-            print(f'Г-за случайности \"{label}\" для {to_rus[column]} {start}принимается{end} - p_value {round(p_value,3)}')
+            print(f'Г-за случайности принимается ' + target + ' ' + str(round(p_value, 3)))
+
+get_auto_correlation_plot(selected_stocks)
+
+plot_vs_pdf(selected_stocks)
+
+for stock in selected_stocks:
+    print("Для {}:".format(stock.name))
+    test_hypothesis(stock)
 
 
+# Рассматриваем актив, где гипотеза не отвергается
+plot_profit(stocks, 'VALE3')
+plot_volume(stocks, 'VALE3')
+plot_prices(stocks, 'VALE3')
+
+print('\n')
+# Корреляция
+# ITUB3 - крупнейший негосударственный банк
+# BBDC3 - третий по величине банк бразилии
+ITUB = next(stock for stock in stocks if stock.key == 'ITUB3')
+BBDC = next(stock for stock in stocks if stock.key == 'BBDC3')
+corr_data = ITUB.profitability.copy()
+corr_data_2 = BBDC.profitability.copy()
+corr_data[1] = corr_data_2
+print("Корреляция между " + ITUB.name + " и " + BBDC.name + ' = ' + str(round(corr_data.corr()[0][1], 2)))
+
+
+# Корреляция
+# VIVT3 - оператор сотовой связи
+# TELB3 - телекоммуникация
+VIVT3 = next(stock for stock in stocks if stock.key == 'VIVT3')
+TELB4 = next(stock for stock in stocks if stock.key == 'TELB4')
+corr_data = VIVT3.profitability.copy()
+corr_data_2 = TELB4.profitability.copy()
+corr_data[1] = corr_data_2
+print("Корреляция между " + VIVT3.name + " и " + TELB4.name + ' = ' + str(round(corr_data.corr()[0][1], 2)))
+
+
+# Корреляция
+# VIVT3 - оператор сотовой связи
+# CMIG3 - электроэнергетика
+VIVT3 = next(stock for stock in stocks if stock.key == 'VIVT3')
+CMIG3 = next(stock for stock in stocks if stock.key == 'CMIG3')
+corr_data = VIVT3.profitability.copy()
+corr_data_2 = CMIG3.profitability.copy()
+corr_data[1] = corr_data_2
+print("Корреляция между " + VIVT3.name + " и " + CMIG3.name + ' = ' + str(round(corr_data.corr()[0][1], 2)))
+
+
+# Корреляция
+# VALE3 - горная добыча
+# ITUB3 - крупнейший негосударственный банк
+VALE3 = next(stock for stock in stocks if stock.key == 'VALE3')
+ITUB3 = next(stock for stock in stocks if stock.key == 'ITUB3')
+corr_data = VALE3.profitability.copy()
+corr_data_2 = ITUB3.profitability.copy()
+corr_data[1] = corr_data_2
+print("Корреляция между " + VALE3.name + " и " + ITUB3.name + ' = ' + str(round(corr_data.corr()[0][1], 2)))
+
+
+# Корреляция
+# VALE3 - горная добыча
+VALE3 = next(stock for stock in stocks if stock.key == 'VALE3')
+corr_data = VALE3.profitability.copy()
+corr_data_2 = VALE3.volume.copy()
+corr_data[1] = corr_data_2
+print("Корреляция " + VALE3.name + " между доходностью и объёмом = " + str(round(corr_data.corr()[0][1], 2)))
+
+
+# Корреляция
+# CMIG3 - электричество
+CMIG3 = next(stock for stock in stocks if stock.key == 'CMIG3')
+corr_data = CMIG3.profitability.copy()
+corr_data_2 = CMIG3.volume.copy()
+corr_data[1] = corr_data_2
+print("Корреляция " + CMIG3.name + " между доходностью и объёмом = " + str(round(corr_data.corr()[0][1], 2)))
+
+get_independent_set(stocks[:-3])
+# Новости и интерпретация пиков продаж
+plt.show()
 
 
 # #prepearing fot graphs

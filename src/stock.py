@@ -7,6 +7,7 @@ class Stock:
         try:
             self.id = int(id_)
             self.key = key_
+            self.name = ''
             self.close_price = close_price_
             self.volume = volume_
             self.profitability = []

@@ -2,8 +2,10 @@ from investiny import historical_data
 import yfinance as yf
 from os import walk
 from time import sleep
-from src.stock import Stock
+import pandas as pd
 import csv
+
+from src.stock import Stock
 
 
 def get_data(ids_path="../resource/brazil_ids.csv", from_date="01/01/2017", to_date="01/01/2018"):
@@ -27,7 +29,7 @@ def get_data(ids_path="../resource/brazil_ids.csv", from_date="01/01/2017", to_d
                         file_writer.writerow({"close": str(temp_data['close'][i]), "volume": str(temp_data['volume'][i])})
 
 
-def get_Stocks(ids_path="../resource/brazil_ids.csv"):
+def get_Stocks(levelValueAtRisk, ids_path="../resource/brazil_ids.csv"):
     stocks = []
     ids = []
     files = []
@@ -52,7 +54,20 @@ def get_Stocks(ids_path="../resource/brazil_ids.csv"):
                         close.append(float(data_row['close']))
                         volume.append(int(data_row['volume']))
                 stocks.append(Stock(row['id'], row['symbol'], close, volume))
+                stocks[-1].name = row['full_name']
 
+    for stock in stocks:
+        stock.profitability = pd.DataFrame(stock.close_price).pct_change()
+        stock.E = stock.profitability.mean()[0]
+        stock.sigma = stock.profitability.std()[0]
+        stock.profitability_sorted = pd.DataFrame(stock.close_price).pct_change()
+        for stock_profit in stock.profitability_sorted:
+            stock_profit *= -1
+        stock.profitability_sorted = stock.profitability_sorted.sort_values(by=[0])
+
+        stock.ValueAtRisk[levelValueAtRisk] = stock.profitability_sorted[0][
+                                              int(len(stock.profitability_sorted) *
+                                                  (1.0 - float(levelValueAtRisk))):].min()
     return stocks
 
 
