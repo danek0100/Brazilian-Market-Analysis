@@ -5,11 +5,17 @@ from time import sleep
 import pandas as pd
 import csv
 
-from stock import Stock
+from src.stock import Stock
 
 
+########################################################################################################################
+# 1. Собрать данные по дневным ценам активов и дневным объёмам продаж на фондовом рынке.                               #
+#    Добавить данные по индексу рынка.                                                                                 #
+# 2. Преобразовать данные по ценам в данные по доходностям. Вычислить оценки ожидаемых доходностей                     #
+#    и стандартных отклоненй. Постройте карту активов в системе (риск, доходность).                                    #
+# 5. Задайте уровень риска и оцените Value at Risk.                                                                    #
+########################################################################################################################
 def get_data(ids_path="../resource/brazil_ids.csv", from_date="01/01/2017", to_date="01/01/2018"):
-    temp_data = {}
     with open(ids_path, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -26,10 +32,18 @@ def get_data(ids_path="../resource/brazil_ids.csv", from_date="01/01/2017", to_d
                                                  lineterminator="\r", fieldnames=column_names)
                     file_writer.writeheader()
                     for i in range(len(temp_data['close'])):
-                        file_writer.writerow({"close": str(temp_data['close'][i]), "volume": str(temp_data['volume'][i])})
+                        file_writer.writerow(
+                            {"close": str(temp_data['close'][i]), "volume": str(temp_data['volume'][i])})
 
 
-def get_Stocks(levelValueAtRisk, ids_path="../resource/brazil_ids.csv"):
+########################################################################################################################
+# 1. Собрать данные по дневным ценам активов и дневным объёмам продаж на фондовом рынке.                               #
+#    Добавить данные по индексу рынка.                                                                                 #
+# 2. Преобразовать данные по ценам в данные по доходностям. Вычислить оценки ожидаемых доходностей                     #
+#    и стандартных отклоненй. Постройте карту активов в системе (риск, доходность).                                    #
+# 5. Задайте уровень риска и оцените Value at Risk.                                                                    #
+########################################################################################################################
+def get_Stocks(level_VaR, ids_path="../resource/brazil_ids.csv"):
     stocks = []
     ids = []
     files = []
@@ -48,45 +62,52 @@ def get_Stocks(levelValueAtRisk, ids_path="../resource/brazil_ids.csv"):
             if int(row['id']) in ids:
                 close = []
                 volume = []
+
                 with open('../resource/data/' + row['id'] + '.csv', encoding='utf-8') as data_file:
                     data_reader = csv.DictReader(data_file)
                     for data_row in data_reader:
                         close.append(float(data_row['close']))
                         volume.append(int(data_row['volume']))
+
                 stocks.append(Stock(row['id'], row['symbol'], close, volume))
                 stocks[-1].name = row['full_name']
 
     for stock in stocks:
         stock.profitability = pd.DataFrame(stock.close_price).pct_change()
         stock.E = stock.profitability.mean()[0]
-        stock.sigma = stock.profitability.std()[0]
+
+        stock.risk = stock.profitability.std()[0]
         stock.profitability_sorted = pd.DataFrame(stock.close_price).pct_change()
         for stock_profit in stock.profitability_sorted:
             stock_profit *= -1
         stock.profitability_sorted = stock.profitability_sorted.sort_values(by=[0])
 
-        stock.ValueAtRisk[levelValueAtRisk] = stock.profitability_sorted[0][
-                                              int(len(stock.profitability_sorted) *
-                                                  (1.0 - float(levelValueAtRisk))):].min()
+        stock.VaR[level_VaR] = stock.profitability_sorted.quantile(float(level_VaR))[0]
+
     return stocks
 
 
-def get_market_index(key, levelValueAtRisk, from_date="2017-01-01", to_date="2018-01-01"):
+########################################################################################################################
+# 4. Рассмотрите индекс рынка и отметьте его на карте активов в системе коардинат (риск, доходность).                  #
+########################################################################################################################
+def get_market_index(key, level_VaR, from_date="2017-01-01", to_date="2018-01-01"):
     data = yf.download(key, from_date, to_date)
     prices_array = []
     volumes_array = []
+
     for price in data['Adj Close']:
         prices_array.append(price)
     for volume in data['Volume']:
         volumes_array.append(volume)
 
     stock = Stock(0, key, prices_array, volumes_array)
+    stock.name = "Market Index"
     stock.profitability = data['Adj Close'].pct_change()
     stock.profitability_sorted = stock.profitability.copy()
-    for stock_proft in stock.profitability_sorted:
-        stock_proft *= -1
-    stock.ValueAtRisk[levelValueAtRisk] = stock.profitability_sorted.array[int(len(stock.profitability_sorted) *
-                                                                               (1.0 - float(levelValueAtRisk))):].min()
+    for stock_profit in stock.profitability_sorted:
+        stock_profit *= -1
+
+    stock.VaR[level_VaR] = stock.profitability_sorted.quantile(float(level_VaR))
     stock.E = stock.profitability.mean()
-    stock.sigma = stock.profitability.std()
+    stock.risk = stock.profitability.std()
     return stock
