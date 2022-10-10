@@ -1,8 +1,8 @@
 import os
 
-from src.data import *
-from src.stock import Stock
-from src.functions import *
+from data import *
+from stock import Stock
+from functions import *
 
 # constants
 ids_path = "../resource/brazil_ids.csv"
@@ -40,6 +40,7 @@ stocks.append(get_market_index('^BVSP', levelValueAtRisk))
 Es.append(stocks[-1].E)
 sigmas.append(stocks[-1].sigma)
 
+
 # Add equal backpack
 ########################################################################################################################
 sum_Es = 0.0
@@ -58,12 +59,40 @@ stocks[-1].E = sum_Es / len(Es)
 stocks[-1].ValueAtRisk[levelValueAtRisk] = globalValueAtRisk
 Es.append(stocks[-1].E)
 sigmas.append(stocks[-1].sigma)
+print("sds", stocks[-1].E)
+print(stocks[-1].sigma)
 ########################################################################################################################
 
 maxValueAtRiskStock = min(stocks, key=lambda x: x.ValueAtRisk[levelValueAtRisk])
 print(maxValueAtRiskStock.key)
 print(maxValueAtRiskStock.ValueAtRisk[levelValueAtRisk])
 
+VAR = []
+i = 0 
+for stock in stocks:
+    loss = pd.DataFrame(stock.profitability_sorted)
+    VAR.append(loss.quantile(0.95))
+
+minVAR = 1
+for i in range(len(VAR) - 1):
+    print(VAR[i][0])
+    if VAR[i][0] < minVAR:
+        minVAR = VAR[i][0]
+        minID = i
+
+print("VAR ", minVAR )
+print("VAR id ", minID )
+print(len(VAR))
+i = 0
+for stock in stocks:
+    if i == minID:
+        VARsig = stock.sigma
+        VARE = stock.E
+        print(stock.name)
+    i += 1 
+
+print(stocks[-1].profitability)
+ 
 # paint map
 plt.title('Profitability/Risk Map', fontsize=12, fontname='Times New Roman')
 plt.grid(True)
@@ -94,8 +123,8 @@ alpha = 0.05
 print('Критерий инверсии:')
 for stock in selected_stocks:
     print('\n' + str(stock.name))
-    print([round(price, 2) for price in stock.profitability[0]])
-    print(stock.volume)
+    #print([round(price, 2) for price in stock.profitability[0]])
+    #print(stock.volume)
     for target in ['profit', 'volume']:
         result, p_value = inversion_test(stock, alpha, target)
         if result:
@@ -185,76 +214,76 @@ plt.show()
 
 
 # #prepearing fot graphs
-# df_for_graph = pd.DataFrame(
-#     {'σ': sigmas[:-2],
-#      'E': Es[:-2]
-#     })
+df_for_graph = pd.DataFrame(
+    {'σ': sigmas[:-2],
+     'E': Es[:-2]
+    })
 #
 #
 # #for 2 point
-# sns.set_style("darkgrid")
-# fig, ax = plt.subplots(1,2)
-# plt.subplots_adjust(wspace= 0.5)
-# sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0]).set_title("Profitability/Risk Map")
-# ax[0].legend(['Assets'])
-# df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
-# sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
-# ax[1].legend(['Assets'])
-# fig.show()
+sns.set_style("darkgrid")
+fig, ax = plt.subplots(1,2)
+plt.subplots_adjust(wspace= 0.5)
+sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0]).set_title("Profitability/Risk Map")
+ax[0].legend(['Assets'])
+df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
+sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
+ax[1].legend(['Assets'])
+fig.show()
 #
 #
 # #for 3 point
-# sns.set_style("darkgrid")
-# fig_1, ax = plt.subplots(1,2)
-# plt.subplots_adjust(wspace= 0.5)
-#
-# sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0], legend = "full").set_title("Profitability/Risk Map")
-# ax[0].plot(sigmas[-1], Es[-1], color='green', marker='o')
-# ax[0].legend(['Assets', 'Balanced portfolio'])
-#
-# df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
-# sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
-# ax[1].plot(sigmas[-1], Es[-1], color='green', marker='o', label = "Balanced portfolio")
-# ax[1].legend(['Assets', 'Balanced portfolio'])
-# fig_1.show()
+sns.set_style("darkgrid")
+fig_1, ax = plt.subplots(1,2)
+plt.subplots_adjust(wspace= 0.5)
+
+sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0], legend = "full").set_title("Profitability/Risk Map")
+ax[0].plot(sigmas[-1], Es[-1], color='green', marker='o')
+ax[0].legend(['Assets', 'Balanced portfolio'])
+
+df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
+sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
+ax[1].plot(sigmas[-1], Es[-1], color='green', marker='o', label = "Balanced portfolio")
+ax[1].legend(['Assets', 'Balanced portfolio'])
+fig_1.show()
 #
 # #for 4 point
-# sns.set_style("darkgrid")
-# fig_2, ax = plt.subplots(1,2)
-# plt.subplots_adjust(wspace= 0.5)
-#
-# sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0]).set_title("Profitability/Risk Map")
-# ax[0].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
-# ax[0].plot(sigmas[-1], Es[-1], color='green', marker='o')
-# ax[0].legend(['Assets', 'Market index - BOVESPA','Balanced portfolio'])
-# df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
-# sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
-# #plt.plot(maxValueAtRiskStock.sigma, maxValueAtRiskStock.E, color='red', marker='o')
-#
-# ax[1].plot(sigmas[-1], Es[-1], color='green', marker='o')
-# ax[1].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
-# ax[1].legend(['Assets', 'Market index - BOVESPA','Balanced portfolio'])
-# fig_2.show()
+sns.set_style("darkgrid")
+fig_2, ax = plt.subplots(1,2)
+plt.subplots_adjust(wspace= 0.5)
+
+sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0]).set_title("Profitability/Risk Map")
+ax[0].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
+ax[0].plot(sigmas[-1], Es[-1], color='green', marker='o')
+ax[0].legend(['Assets', 'Balanced portfolio', 'Market index - BOVESPA'])
+df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
+sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
+#plt.plot(maxValueAtRiskStock.sigma, maxValueAtRiskStock.E, color='red', marker='o')
+
+ax[1].plot(sigmas[-1], Es[-1], color='green', marker='o')
+ax[1].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
+ax[1].legend(['Assets', 'Balanced portfolio', 'Market index - BOVESPA'])
+fig_2.show()
 #
 # #for 5 point
-# sns.set_style("darkgrid")
-# fig_3, ax = plt.subplots(1,2)
-# plt.subplots_adjust(wspace= 0.5)
-#
-# sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0]).set_title("Profitability/Risk Map")
-# ax[0].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
-# ax[0].plot(sigmas[-1], Es[-1], color='green', marker='o')
-# ax[0].plot(maxValueAtRiskStock.sigma, maxValueAtRiskStock.E, color='red', marker='o')
-# ax[0].legend(['Assets', 'Market index - BOVESPA','Balanced portfolio' , 'VAR'])
-#
-# df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
-# sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
-# #plt.plot(maxValueAtRiskStock.sigma, maxValueAtRiskStock.E, color='red', marker='o')
-#
-# ax[1].plot(sigmas[-1], Es[-1], color='green', marker='o')
-# ax[1].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
-# ax[1].plot(maxValueAtRiskStock.sigma, maxValueAtRiskStock.E, color='red', marker='o')
-# ax[1].legend(['Assets', 'Market index - BOVESPA','Balanced portfolio', 'VAR'])
-# fig_3.show()
-# input() #to stop close graph:)
+sns.set_style("darkgrid")
+fig_3, ax = plt.subplots(1,2)
+plt.subplots_adjust(wspace= 0.5)
+
+sns.scatterplot(data = df_for_graph, x='σ', y='E', ax=ax[0]).set_title("Profitability/Risk Map")
+ax[0].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
+ax[0].plot(sigmas[-1], Es[-1], color='green', marker='o')
+ax[0].plot(VARsig, VARE, color='red', marker='o')
+ax[0].legend(['Assets', 'Balanced portfolio' , 'Market index - BOVESPA', 'VAR'])
+
+df_graph_plus = df_for_graph.drop(np.where(df_for_graph['σ'] > 0.08)[0])
+sns.scatterplot(data = df_graph_plus, x='σ', y='E', ax=ax[1]).set_title("Profitability/Risk Map")
+#plt.plot(maxValueAtRiskStock.sigma, maxValueAtRiskStock.E, color='red', marker='o')
+
+ax[1].plot(sigmas[-1], Es[-1], color='green', marker='o')
+ax[1].plot(sigmas[-2], Es[-2], color='yellow', marker='o')
+ax[1].plot(VARsig, VARE, color='red', marker='o')
+ax[1].legend(['Assets', 'Balanced portfolio' , 'Market index - BOVESPA', 'VAR'])
+fig_3.show()
+input() #to stop close graph:)
 #

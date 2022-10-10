@@ -5,7 +5,7 @@ from time import sleep
 import pandas as pd
 import csv
 
-from src.stock import Stock
+from stock import Stock
 
 
 def get_data(ids_path="../resource/brazil_ids.csv", from_date="01/01/2017", to_date="01/01/2018"):
