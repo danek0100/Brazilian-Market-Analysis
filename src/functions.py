@@ -289,7 +289,7 @@ def get_independent_set(stocks):
     plt.legend(loc='upper left')
 
     # Строим граф на уровне корреляции 0.8
-    for por in range(8, 9):
+    for por in range(0, 1):
         pr = por / 10.0
         plt.figure(figsize=(50, 25))
         G = graph_by_matrix(corr, pr)
@@ -301,13 +301,17 @@ def get_independent_set(stocks):
             label_dict[i] = name
             i += 1
 
-        nx.draw_random(G, node_color='blue', node_size=550, with_labels=True, alpha=0.55, width=0.9, font_size=7.5,
+        nx.draw_random(GI, node_color='blue', node_size=550, with_labels=True, alpha=0.55, width=0.9, font_size=7.5,
                        font_color='black', font_weight='normal', font_family='Times New Roman', labels=label_dict)
 
         clique_set = clique.max_clique(G)
         print("Максимальная клика:\n" + str(clique_set))
+        # for node in clique_set:
+        #     print(label_dict[node])
         independent_set = clique.max_clique(GI)
         print("Максимальное независимое множество:\n" + str(independent_set))
+        for node in independent_set:
+            print(label_dict[node])
 
 
 def print_corr(stocks, stock_key_1, stock_key_2):
