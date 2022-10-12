@@ -1,9 +1,9 @@
 from hashlib import md5
 
 
+# Класс для удобной работы с акциями.
 class Stock:
     def __init__(self, id_, key_, close_price_, volume_):
-
         try:
             self.id = int(id_)
             self.key = key_
@@ -12,9 +12,9 @@ class Stock:
             self.volume = volume_
             self.profitability = []
             self.profitability_sorted = []
-            self.sigma = None
+            self.risk = None
             self.E = None
-            self.ValueAtRisk = {}
+            self.VaR = {}
 
         except TypeError:
             raise TypeError
